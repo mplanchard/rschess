@@ -30,25 +30,30 @@ where
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct BitIndex(u8);
 impl From<Square> for BitIndex {
+    /// Convert a Square into a BitIndex
     fn from(sq: Square) -> Self {
         Self::sq_to_bitindex(&sq)
     }
 }
 impl From<&Square> for BitIndex {
+    /// Convert a &Square into a BitIndex
     fn from(sq: &Square) -> Self {
         Self::sq_to_bitindex(sq)
     }
 }
 impl Into<u8> for BitIndex {
+    /// Convert a BitIndex into a u8
     fn into(self) -> u8 {
         self.0
     }
 }
 impl Into<u8> for &BitIndex {
+    /// Convert a &BitIndex into a u8
     fn into(self) -> u8 {
         self.0
     }
 }
+/// Enable modulo operations with u8s on BitIndexes
 impl ops::Rem<u8> for BitIndex {
     type Output = u8;
 
@@ -56,6 +61,7 @@ impl ops::Rem<u8> for BitIndex {
         self.0 % other
     }
 }
+/// Enable modulo operations with u8s on &BitIndexes
 impl ops::Rem<u8> for &BitIndex {
     type Output = u8;
 
@@ -63,6 +69,23 @@ impl ops::Rem<u8> for &BitIndex {
         self.0 % other
     }
 }
+/// Enable modulo operations with BitIndexes on BitIndexes
+impl ops::Rem<BitIndex> for BitIndex {
+    type Output = u8;
+
+    fn rem(self, other: BitIndex) -> u8 {
+        self.0 % other.0
+    }
+}
+/// Enable modulo operations with &BitIndexes on BitIndexes
+impl ops::Rem<&BitIndex> for BitIndex {
+    type Output = u8;
+
+    fn rem(self, other: &BitIndex) -> u8 {
+        self.0 % other.0
+    }
+}
+/// Enable modulo operations with BitIndexes on &BitIndexes
 impl ops::Rem<BitIndex> for &BitIndex {
     type Output = u8;
 
@@ -70,6 +93,7 @@ impl ops::Rem<BitIndex> for &BitIndex {
         self.0 % other.0
     }
 }
+/// Enable modulo operations with &BitIndexes on &BitIndexes
 impl ops::Rem<&BitIndex> for &BitIndex {
     type Output = u8;
 
@@ -77,12 +101,20 @@ impl ops::Rem<&BitIndex> for &BitIndex {
         self.0 % other.0
     }
 }
+/// Enable a self-returning checked add for u8s for BitIndexes
+///
+/// This helps us to ensure that BitIndexes that are not valid (i.e.
+/// that are outside of the range [0..64] are impossible to retrieve).
 impl SelfReturningCheckedAdd<u8> for BitIndex {
     /// Do addition, and return None on overflow
     fn checked_add(self, rhs: u8) -> Option<BitIndex> {
         Self::from(self.0.checked_add(rhs)?)
     }
 }
+/// Enable a self-returning checked add with i8s for BitIndexes
+///
+/// This helps us to ensure that BitIndexes that are not valid (i.e.
+/// that are outside of the range [0..64] are impossible to retrieve).
 impl SelfReturningCheckedAdd<i8> for BitIndex {
     /// Add a potentially negative i8, returning None on overflow.
     ///
@@ -225,6 +257,8 @@ impl Square {
     // const RANK_1: u64 = 0x00000000000000FF;
     // const RANK_8: u64 = 0xFF00000000000000;
 
+    /// Just a convenience method so that we don't need to specify
+    /// var types in expressions
     fn to_bitindex(&self) -> BitIndex {
         self.into()
     }
@@ -242,8 +276,8 @@ impl Square {
         }
     }
 
-    fn next_square(&self, direction: Compass) -> Result<Self, Error> {
-        if !self.next_square_on_board(&direction) {
+    fn next_square(&self, direction: &Compass) -> Result<Self, Error> {
+        if !self.next_square_on_board(direction) {
             return Err(Error::OffBoard);
         }
         let cur: BitIndex = self.into();
@@ -493,186 +527,253 @@ mod tests {
     #[test]
     fn move_north() {
         let cur_pos = Square::A1;
-        let next_pos = cur_pos.next_square(Compass::North).unwrap();
+        let next_pos = cur_pos.next_square(&Compass::North).unwrap();
         assert_eq!(next_pos, Square::A2);
     }
 
     #[test]
     fn move_south() {
         let cur_pos = Square::B2;
-        let next_pos = cur_pos.next_square(Compass::South).unwrap();
+        let next_pos = cur_pos.next_square(&Compass::South).unwrap();
         assert_eq!(next_pos, Square::B1);
     }
 
     #[test]
     fn move_east() {
         let cur_pos = Square::B1;
-        let next_pos = cur_pos.next_square(Compass::East).unwrap();
+        let next_pos = cur_pos.next_square(&Compass::East).unwrap();
         assert_eq!(next_pos, Square::C1);
     }
 
     #[test]
     fn move_west() {
         let cur_pos = Square::B2;
-        let next_pos = cur_pos.next_square(Compass::West).unwrap();
+        let next_pos = cur_pos.next_square(&Compass::West).unwrap();
         assert_eq!(next_pos, Square::A2);
     }
 
     #[test]
     fn move_northwest() {
         let cur_pos = Square::B2;
-        let next_pos = cur_pos.next_square(Compass::NorthWest).unwrap();
+        let next_pos = cur_pos.next_square(&Compass::NorthWest).unwrap();
         assert_eq!(next_pos, Square::A3);
     }
 
     #[test]
     fn move_northeast() {
         let cur_pos = Square::B2;
-        let next_pos = cur_pos.next_square(Compass::NorthEast).unwrap();
+        let next_pos = cur_pos.next_square(&Compass::NorthEast).unwrap();
         assert_eq!(next_pos, Square::C3);
     }
 
     #[test]
     fn move_southwest() {
         let cur_pos = Square::B2;
-        let next_pos = cur_pos.next_square(Compass::SouthWest).unwrap();
+        let next_pos = cur_pos.next_square(&Compass::SouthWest).unwrap();
         assert_eq!(next_pos, Square::A1);
     }
 
     #[test]
     fn move_southeast() {
         let cur_pos = Square::B2;
-        let next_pos = cur_pos.next_square(Compass::SouthEast).unwrap();
+        let next_pos = cur_pos.next_square(&Compass::SouthEast).unwrap();
         assert_eq!(next_pos, Square::C1);
     }
 
     #[test]
     fn move_offboard_south() {
         let cur_pos = Square::A1;
-        let next_pos = cur_pos.next_square(Compass::South);
+        let next_pos = cur_pos.next_square(&Compass::South);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_north() {
         let cur_pos = Square::A8;
-        let next_pos = cur_pos.next_square(Compass::North);
+        let next_pos = cur_pos.next_square(&Compass::North);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_east() {
         let cur_pos = Square::H5;
-        let next_pos = cur_pos.next_square(Compass::East);
+        let next_pos = cur_pos.next_square(&Compass::East);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_west() {
         let cur_pos = Square::A5;
-        let next_pos = cur_pos.next_square(Compass::West);
+        let next_pos = cur_pos.next_square(&Compass::West);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_northwest_north() {
         let cur_pos = Square::H8;
-        let next_pos = cur_pos.next_square(Compass::NorthWest);
+        let next_pos = cur_pos.next_square(&Compass::NorthWest);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_northwest_west() {
         let cur_pos = Square::A1;
-        let next_pos = cur_pos.next_square(Compass::NorthWest);
+        let next_pos = cur_pos.next_square(&Compass::NorthWest);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_northwest_northwest() {
         let cur_pos = Square::A8;
-        let next_pos = cur_pos.next_square(Compass::NorthWest);
+        let next_pos = cur_pos.next_square(&Compass::NorthWest);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_southwest_south() {
         let cur_pos = Square::H1;
-        let next_pos = cur_pos.next_square(Compass::SouthWest);
+        let next_pos = cur_pos.next_square(&Compass::SouthWest);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_southwest_west() {
         let cur_pos = Square::A8;
-        let next_pos = cur_pos.next_square(Compass::NorthWest);
+        let next_pos = cur_pos.next_square(&Compass::NorthWest);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_southwest_southwest() {
         let cur_pos = Square::A1;
-        let next_pos = cur_pos.next_square(Compass::NorthWest);
+        let next_pos = cur_pos.next_square(&Compass::NorthWest);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_northeast_north() {
         let cur_pos = Square::A8;
-        let next_pos = cur_pos.next_square(Compass::NorthEast);
+        let next_pos = cur_pos.next_square(&Compass::NorthEast);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_northeast_east() {
         let cur_pos = Square::H1;
-        let next_pos = cur_pos.next_square(Compass::NorthEast);
+        let next_pos = cur_pos.next_square(&Compass::NorthEast);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_northeast_northeast() {
         let cur_pos = Square::H8;
-        let next_pos = cur_pos.next_square(Compass::NorthEast);
+        let next_pos = cur_pos.next_square(&Compass::NorthEast);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_southeast_south() {
         let cur_pos = Square::A1;
-        let next_pos = cur_pos.next_square(Compass::SouthEast);
+        let next_pos = cur_pos.next_square(&Compass::SouthEast);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_southeast_east() {
         let cur_pos = Square::H8;
-        let next_pos = cur_pos.next_square(Compass::SouthEast);
+        let next_pos = cur_pos.next_square(&Compass::SouthEast);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
     #[test]
     fn move_offboard_southeast_southeast() {
         let cur_pos = Square::H1;
-        let next_pos = cur_pos.next_square(Compass::SouthEast);
+        let next_pos = cur_pos.next_square(&Compass::SouthEast);
         assert_eq!(next_pos, Err(Error::OffBoard));
     }
 
-    // fn get_legal_moves(sq: &Square) -> Vec<Compass> {
-    //     let idx = sq.to_bitindex();
-    //     let legals = Vec::new();
+    #[test]
+    fn test_all_on_board_moves_for_all_indexes() {
+        (0 as u8..63).into_iter().for_each(|idx| {
+            let square = Square::try_from(BitIndex::from(idx).unwrap()).unwrap();
+            let exp_neighbors = get_on_board_neighbors(&square);
+            exp_neighbors.iter().for_each(|direction| {
+                assert_ne!(square.next_square(direction), Err(Error::OffBoard));
+            });
+        })
+    }
 
-    //     // Correspond to being on the first/last file/rank
-    //     let east_illegal = |i| i % 8 == 7;
-    //     let west_illegal = |i| i % 8 == 0;
-    //     let north_illegal = |i| i > 55;
-    //     let south_illegal = |i| i < 8;
-    //     let northwest_illegal = |i| north_illegal(i) || west_illegal(i);
-    //     let northeast_illegal = |i| north_illegal(i) || east_illegal(i);
-    //     let southwest_illegal = |i| south_illegal(i) || west_illegal(i);
-    //     let southeast_illegal = |i| south_illegal(i) || east_illegal(i);
+    #[test]
+    fn test_all_off_board_moves_for_all_indexes() {
+        (0 as u8..63).into_iter().for_each(|idx| {
+            let square = Square::try_from(BitIndex::from(idx).unwrap()).unwrap();
+            let exp_neighbors = get_off_board_neighbors(&square);
+            exp_neighbors.iter().for_each(|direction| {
+                assert_eq!(square.next_square(direction), Err(Error::OffBoard));
+            });
+        })
+    }
 
-    //     //
-    // }
+    fn get_on_board_neighbors(sq: &Square) -> Vec<Compass> {
+        let mut neighbors = Vec::new();
+
+        if sq.north_on_board() {
+            neighbors.push(Compass::North)
+        }
+        if sq.east_on_board() {
+            neighbors.push(Compass::East)
+        }
+        if sq.south_on_board() {
+            neighbors.push(Compass::South)
+        }
+        if sq.west_on_board() {
+            neighbors.push(Compass::West)
+        }
+        if sq.north_on_board() && sq.east_on_board() {
+            neighbors.push(Compass::NorthEast)
+        }
+        if sq.north_on_board() && sq.west_on_board() {
+            neighbors.push(Compass::NorthWest)
+        }
+        if sq.south_on_board() && sq.east_on_board() {
+            neighbors.push(Compass::SouthEast)
+        }
+        if sq.south_on_board() && sq.west_on_board() {
+            neighbors.push(Compass::SouthWest)
+        }
+
+        neighbors
+    }
+
+    fn get_off_board_neighbors(sq: &Square) -> Vec<Compass> {
+        let mut neighbors = Vec::new();
+
+        if !sq.north_on_board() {
+            neighbors.push(Compass::North);
+        }
+        if !sq.east_on_board() {
+            neighbors.push(Compass::East)
+        }
+        if !sq.south_on_board() {
+            neighbors.push(Compass::South)
+        }
+        if !sq.west_on_board() {
+            neighbors.push(Compass::West)
+        }
+        if !sq.north_on_board() || !sq.east_on_board() {
+            neighbors.push(Compass::NorthEast)
+        }
+        if !sq.north_on_board() || !sq.west_on_board() {
+            neighbors.push(Compass::NorthWest)
+        }
+        if !sq.south_on_board() || !sq.east_on_board() {
+            neighbors.push(Compass::SouthEast)
+        }
+        if !sq.south_on_board() || !sq.west_on_board() {
+            neighbors.push(Compass::SouthWest)
+        }
+
+        neighbors
+    }
 
 }
