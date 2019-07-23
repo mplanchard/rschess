@@ -4,6 +4,7 @@ use std::fmt;
 use std::ops;
 
 
+/// Custom error enum for all errors
 #[derive(Debug, PartialEq)]
 enum Error {
     OffBoard,
@@ -15,6 +16,10 @@ impl fmt::Display for Error {
     }
 }
 
+/// A trait indicating that a struct has a `checked_add` method that, given
+/// some type, will return an `Option` of the same struct. This is used
+/// e.g. for `BitIndex`, where you can add an i8 to the `BitIndex` and get
+/// another `BitIndex`.
 trait SelfReturningCheckedAdd<T>
 where
     Self: Sized,
@@ -22,7 +27,7 @@ where
     fn checked_add(self, rhs: T) -> Option<Self>;
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct BitIndex(u8);
 impl From<Square> for BitIndex {
     fn from(sq: Square) -> Self {
@@ -73,29 +78,17 @@ impl ops::Rem<&BitIndex> for &BitIndex {
     }
 }
 impl SelfReturningCheckedAdd<u8> for BitIndex {
-    /// Do addition, and return None on failure
-    ///
-    /// ```rs
-    /// assert_eq!(BitIndex::from(8).checked_add(8), Some(BitIndex(16)));
-    /// assert_eq!(BitIndex::from(255).checked_add(255), None);
-    /// ```
+    /// Do addition, and return None on overflow
     fn checked_add(self, rhs: u8) -> Option<BitIndex> {
-        Some(Self(self.0.checked_add(rhs)?))
+        Self::from(self.0.checked_add(rhs)?)
     }
 }
 impl SelfReturningCheckedAdd<i8> for BitIndex {
-    /// Add a potentially negative i8
+    /// Add a potentially negative i8, returning None on overflow.
     ///
     /// Will return `None` if the absolute value of the i8 cannot be converted
     /// to a u8 (although this should always be safe), or if the resultant
     /// addition/subtraction goes outside of the u8 bounds.
-    ///
-    /// ```rs
-    /// assert_eq!(BitIndex::from(8).checked_add(2), Some(BitIndex(10)));
-    /// assert_eq!(BitIndex::from(8).checked_add(-2), Some(BitIndex(6)));
-    /// assert_eq!(BitIndex::from(0).checked_add(-2), None);
-    /// assert_eq!(BitIndex::from(255).checked_add(255), None);
-    /// ```
     fn checked_add(self, rhs: i8) -> Option<BitIndex> {
         let func = if rhs < 0 {
             u8::checked_sub
@@ -103,7 +96,7 @@ impl SelfReturningCheckedAdd<i8> for BitIndex {
             u8::checked_add
         };
         let conv = u8::try_from(rhs.abs()).ok()?;
-        Some(Self(func(self.0, conv)?))
+        Self::from(func(self.0, conv)?)
     }
 }
 impl BitIndex {
@@ -471,7 +464,31 @@ impl Board {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
+
+    #[test]
+    fn bitindex_checked_add_u8() {
+        assert_eq!(
+            BitIndex::from(8).unwrap().checked_add(8 as u8),
+            Some(BitIndex(16))
+        );
+        assert_eq!(BitIndex::from(63).unwrap().checked_add(2 as u8), None);
+    }
+
+    #[test]
+    fn bitindex_checked_add_i8() {
+        assert_eq!(
+            BitIndex::from(8).unwrap().checked_add(2 as i8),
+            Some(BitIndex(10))
+        );
+        assert_eq!(
+            BitIndex::from(8).unwrap().checked_add(-2 as i8),
+            Some(BitIndex(6))
+        );
+        assert_eq!(BitIndex::from(0).unwrap().checked_add(-2 as i8), None);
+        assert_eq!(BitIndex::from(63).unwrap().checked_add(2 as i8), None);
+    }
 
     #[test]
     fn move_north() {
