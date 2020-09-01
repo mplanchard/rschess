@@ -87,7 +87,7 @@ impl PieceBoard {
     const fn occupied(&self, square: Square) -> bool {
         self.board.intersects(&BitBoard::from_square(square))
     }
-    pub fn apply_move(&self, mv: Move) -> Self {
+    pub fn apply_move(&self, mv: &Move) -> Self {
         if self.board.intersects(&mv.from.board) {
             Self::new(
                 self.piece,
@@ -160,8 +160,20 @@ impl Pieces {
     pub fn all_pieces(&self) -> PiecesIter {
         PiecesIter::new(self)
     }
+    /// Return whether the given square is occupied by this piece set.
     pub fn occupied(&self, square: Square) -> bool {
         self.all_pieces().any(|pb| pb.board.occupied(square))
+    }
+    /// Apply a move to the pice set and return a new one
+    pub fn apply_move(&self, mv: &Move) -> Self {
+        Self {
+            king: self.king.apply_move(mv),
+            queens: self.queens.apply_move(mv),
+            rooks: self.rooks.apply_move(mv),
+            bishops: self.bishops.apply_move(mv),
+            knights: self.knights.apply_move(mv),
+            pawns: self.pawns.apply_move(mv),
+        }
     }
 }
 
@@ -237,13 +249,13 @@ impl Board {
     pub fn occupied(&self, square: Square) -> bool {
         self.all_pieces().any(|pb| pb.board.occupied(square))
     }
-    // /// Return a new board with a move applied.
-    // ///
-    // /// Move validity should be checked at the game level. No checking
-    // /// is done here.
-    // pub fn apply_move(&self, mv: Move) -> Board {
-
-    // }
+    /// Return a new board with a move applied.
+    ///
+    /// Move validity should be checked at the game level. No checking
+    /// is done here.
+    pub fn apply_move(&self, mv: &Move) -> Self {
+        Self::new(self.white.apply_move(mv), self.black.apply_move(mv))
+    }
 }
 
 #[cfg(test)]
@@ -374,5 +386,14 @@ mod test {
     fn test_occupied_false() {
         assert!(Board::fresh_game().occupied(Square::A3) == false);
         assert!(Board::fresh_game().occupied(Square::A6) == false);
+    }
+
+    #[test]
+    fn test_apply_move_valid_move() {
+        let board = Board::fresh_game();
+        assert!(board.occupied(Square::A2));
+        let new_board = board.apply_move(&Move::new(Square::A2, Square::A3));
+        assert!(new_board.occupied(Square::A3));
+        assert!(!new_board.occupied(Square::A2));
     }
 }
