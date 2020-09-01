@@ -74,14 +74,14 @@ impl BitBoard {
     pub const fn is_empty(&self) -> bool {
         self.positions == 0
     }
-    pub const fn contains(&self, square: Square) -> bool {
+    pub const fn occupied(&self, square: Square) -> bool {
         !Self::from_square(square).intersection(self).is_empty()
     }
     pub fn occupied_squares(&self) -> Vec<Square> {
         SQUARES
             .iter()
             .map(|s| *s)
-            .filter(|s| self.contains(*s))
+            .filter(|s| self.occupied(*s))
             .collect()
     }
 
@@ -425,5 +425,4 @@ mod test_bitboard {
     fn test_toggle_off() {
         assert!(BitBoard::from_square(Square::A1).toggle(Square::A1) == NO_SQUARES)
     }
-
 }

@@ -26,16 +26,31 @@ const STARTING_BLACK_KING: BitBoard = BitBoard::from_square(Square::E8);
 // Precalculating starting board
 const STARTING_BOARD: Board = Board::fresh_game();
 
-pub struct Move {
-    from: Square,
-    to: Square,
+pub struct MoveComponent {
+    square: Square,
+    board: BitBoard,
 }
-impl Move {
-    pub const fn new(from: Square, to: Square) -> Self {
-        Self { from, to }
+impl MoveComponent {
+    pub const fn new(square: Square) -> Self {
+        Self {
+            square,
+            board: BitBoard::from_square(square),
+        }
     }
 }
 
+pub struct Move {
+    from: MoveComponent,
+    to: MoveComponent,
+}
+impl Move {
+    pub const fn new(from: Square, to: Square) -> Self {
+        Self {
+            from: MoveComponent::new(from),
+            to: MoveComponent::new(to),
+        }
+    }
+}
 
 struct Stash {
     all_pieces: Option<BitBoard>,
@@ -50,14 +65,77 @@ impl Stash {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum Piece {
+    King,
+    Queen,
+    Rook,
+    Bishop,
+    Knight,
+    Pawn,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PieceBoard {
+    piece: Piece,
+    board: BitBoard,
+}
+impl PieceBoard {
+    const fn new(piece: Piece, board: BitBoard) -> Self {
+        Self { piece, board }
+    }
+    const fn occupied(&self, square: Square) -> bool {
+        self.board.intersects(&BitBoard::from_square(square))
+    }
+    pub fn apply_move(&self, mv: Move) -> Self {
+        if self.board.intersects(&mv.from.board) {
+            Self::new(
+                self.piece,
+                self.board
+                    .intersection(&mv.from.board.complement())
+                    .union(&mv.to.board),
+            )
+        } else {
+            *self
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PiecesIter<'a> {
+    idx: u8,
+    pieces: &'a Pieces,
+}
+impl<'a> PiecesIter<'a> {
+    pub fn new(pieces: &'a Pieces) -> Self {
+        Self { idx: 0, pieces }
+    }
+}
+impl<'a> Iterator for PiecesIter<'a> {
+    type Item = &'a PieceBoard;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.idx += 1;
+        match self.idx {
+            1 => Some(&self.pieces.king),
+            2 => Some(&self.pieces.queens),
+            3 => Some(&self.pieces.rooks),
+            4 => Some(&self.pieces.bishops),
+            5 => Some(&self.pieces.knights),
+            6 => Some(&self.pieces.pawns),
+            _ => None,
+        }
+    }
+}
+
 /// A representation of a side's pieces
+#[derive(Debug)]
 pub struct Pieces {
-    king: BitBoard,
-    queens: BitBoard,
-    rooks: BitBoard,
-    bishops: BitBoard,
-    knights: BitBoard,
-    pawns: BitBoard,
+    king: PieceBoard,
+    queens: PieceBoard,
+    rooks: PieceBoard,
+    bishops: PieceBoard,
+    knights: PieceBoard,
+    pawns: PieceBoard,
 }
 impl Pieces {
     // Construct a new set of pieces
@@ -70,28 +148,57 @@ impl Pieces {
         pawns: BitBoard,
     ) -> Self {
         Self {
-            king,
-            queens,
-            rooks,
-            bishops,
-            knights,
-            pawns,
+            king: PieceBoard::new(Piece::King, king),
+            queens: PieceBoard::new(Piece::Queen, queens),
+            rooks: PieceBoard::new(Piece::Rook, rooks),
+            bishops: PieceBoard::new(Piece::Bishop, bishops),
+            knights: PieceBoard::new(Piece::Knight, knights),
+            pawns: PieceBoard::new(Piece::Pawn, pawns),
         }
     }
     /// Return all of the boards for all of the pieces
-    pub fn all_pieces(&self) -> Vec<&BitBoard> {
-        vec![
-            &self.king,
-            &self.queens,
-            &self.rooks,
-            &self.bishops,
-            &self.knights,
-            &self.pawns,
-        ]
+    pub fn all_pieces(&self) -> PiecesIter {
+        PiecesIter::new(self)
+    }
+    pub fn occupied(&self, square: Square) -> bool {
+        self.all_pieces().any(|pb| pb.board.occupied(square))
+    }
+}
+
+#[derive(Debug)]
+pub struct BoardIter<'a> {
+    idx: u8,
+    board: &'a Board,
+}
+impl<'a> BoardIter<'a> {
+    pub fn new(board: &'a Board) -> Self {
+        Self { idx: 0, board }
+    }
+}
+impl<'a> Iterator for BoardIter<'a> {
+    type Item = &'a PieceBoard;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.idx += 1;
+        match self.idx {
+            1 => Some(&self.board.white.king),
+            2 => Some(&self.board.white.queens),
+            3 => Some(&self.board.white.rooks),
+            4 => Some(&self.board.white.bishops),
+            5 => Some(&self.board.white.knights),
+            6 => Some(&self.board.white.pawns),
+            7 => Some(&self.board.black.king),
+            8 => Some(&self.board.black.queens),
+            9 => Some(&self.board.black.rooks),
+            10 => Some(&self.board.black.bishops),
+            11 => Some(&self.board.black.knights),
+            12 => Some(&self.board.black.pawns),
+            _ => None,
+        }
     }
 }
 
 /// A representation of the game board
+#[derive(Debug)]
 pub struct Board {
     white: Pieces,
     black: Pieces,
@@ -99,10 +206,7 @@ pub struct Board {
 impl Board {
     /// Construct a new side from a set of pieces
     pub const fn new(white: Pieces, black: Pieces) -> Self {
-        Self {
-            white,
-            black,
-        }
+        Self { white, black }
     }
     /// Construct a new board with typical starting positions
     pub const fn fresh_game() -> Self {
@@ -126,12 +230,20 @@ impl Board {
         )
     }
     /// Return all of the bitboards comprising the board
-    pub fn all_pieces(&self) -> Vec<&BitBoard> {
-        let mut pieces = self.white.all_pieces();
-        pieces.extend(self.black.all_pieces());
-        pieces
+    pub fn all_pieces(&self) -> BoardIter {
+        BoardIter::new(self)
     }
+    /// Check whether a square is occupied
+    pub fn occupied(&self, square: Square) -> bool {
+        self.all_pieces().any(|pb| pb.board.occupied(square))
+    }
+    // /// Return a new board with a move applied.
+    // ///
+    // /// Move validity should be checked at the game level. No checking
+    // /// is done here.
+    // pub fn apply_move(&self, mv: Move) -> Board {
 
+    // }
 }
 
 #[cfg(test)]
@@ -214,27 +326,53 @@ mod test {
     #[test]
     fn test_fresh_game_all_pieces() {
         assert!(
-            BitBoard::from_boards(&Board::fresh_game().all_pieces())
-                == bitboard::RANK_1
-                    .union(&bitboard::RANK_1.shift_north())
-                    .union(&bitboard::RANK_8)
-                    .union(&bitboard::RANK_8.shift_south())
+            BitBoard::from_boards(
+                &Board::fresh_game()
+                    .all_pieces()
+                    .map(|pb| pb.board)
+                    .collect()
+            ) == bitboard::RANK_1
+                .union(&bitboard::RANK_1.shift_north())
+                .union(&bitboard::RANK_8)
+                .union(&bitboard::RANK_8.shift_south())
         );
     }
 
     #[test]
     fn test_fresh_game_white_pieces() {
         assert!(
-            BitBoard::from_boards(&Board::fresh_game().white.all_pieces())
-                == bitboard::RANK_1.union(&bitboard::RANK_1.shift_north())
+            BitBoard::from_boards(
+                &Board::fresh_game()
+                    .white
+                    .all_pieces()
+                    .map(|pb| pb.board)
+                    .collect()
+            ) == bitboard::RANK_1.union(&bitboard::RANK_1.shift_north())
         );
     }
 
     #[test]
     fn test_fresh_game_black_pieces() {
         assert!(
-            BitBoard::from_boards(&Board::fresh_game().black.all_pieces())
-                == bitboard::RANK_8.union(&bitboard::RANK_8.shift_south())
+            BitBoard::from_boards(
+                &Board::fresh_game()
+                    .black
+                    .all_pieces()
+                    .map(|pb| pb.board)
+                    .collect()
+            ) == bitboard::RANK_8.union(&bitboard::RANK_8.shift_south())
         );
+    }
+
+    #[test]
+    fn test_occupied_true() {
+        assert!(Board::fresh_game().occupied(Square::A1) == true);
+        assert!(Board::fresh_game().occupied(Square::A8) == true);
+    }
+
+    #[test]
+    fn test_occupied_false() {
+        assert!(Board::fresh_game().occupied(Square::A3) == false);
+        assert!(Board::fresh_game().occupied(Square::A6) == false);
     }
 }
