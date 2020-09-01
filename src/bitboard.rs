@@ -63,10 +63,10 @@ impl BitBoard {
             .map(|square| BitBoard::from_square(*square))
             .fold(NO_SQUARES, |result, board| result.union(&board))
     }
-    pub fn from_boards(boards: &Vec<Self>) -> Self {
+    pub fn from_boards<T: AsRef<Self>>(boards: &Vec<T>) -> Self {
         boards
             .iter()
-            .fold(NO_SQUARES, |result, board| result.union(board))
+            .fold(NO_SQUARES, |result, board| result.union(board.as_ref()))
     }
 }
 /// Containment and Combination Methods
@@ -187,6 +187,12 @@ impl BitBoard {
     /// Unset a given square
     pub const fn unset(&self, square: Square) -> Self {
         self.intersection(&Self::from_square(square).complement())
+    }
+}
+/// Return a reference from a value or a reference
+impl AsRef<Self> for BitBoard {
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 /// Bitboards are equal if their positions are equal

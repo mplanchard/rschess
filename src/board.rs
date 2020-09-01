@@ -58,7 +58,6 @@ pub struct Pieces {
     bishops: BitBoard,
     knights: BitBoard,
     pawns: BitBoard,
-    stash: Stash,
 }
 impl Pieces {
     // Construct a new set of pieces
@@ -77,23 +76,18 @@ impl Pieces {
             bishops,
             knights,
             pawns,
-            stash: Stash::new(),
         }
     }
-    /// Retrieve a bitboard indicating the position of all the pieces
-    pub fn all_pieces(&mut self) -> BitBoard {
-        if let Some(pieces) = self.stash.all_pieces {
-            return pieces;
-        }
-        // lazily set the union on first access. Otherwise don't bother.
-        let pieces = self.king
-            .union(&self.queens)
-            .union(&self.rooks)
-            .union(&self.bishops)
-            .union(&self.knights)
-            .union(&self.pawns);
-        self.stash.set_all_pieces(pieces);
-        pieces
+    /// Return all of the boards for all of the pieces
+    pub fn all_pieces(&self) -> Vec<&BitBoard> {
+        vec![
+            &self.king,
+            &self.queens,
+            &self.rooks,
+            &self.bishops,
+            &self.knights,
+            &self.pawns,
+        ]
     }
 }
 
@@ -101,7 +95,6 @@ impl Pieces {
 pub struct Board {
     white: Pieces,
     black: Pieces,
-    stash: Stash,
 }
 impl Board {
     /// Construct a new side from a set of pieces
@@ -109,7 +102,6 @@ impl Board {
         Self {
             white,
             black,
-            stash: Stash::new(),
         }
     }
     /// Construct a new board with typical starting positions
@@ -133,15 +125,13 @@ impl Board {
             ),
         )
     }
-    /// Return a bitboard corresponding to all the pieces on both sides
-    pub fn all_pieces(&mut self) -> BitBoard {
-        if let Some(pieces) = self.stash.all_pieces {
-            return pieces;
-        }
-        let pieces = self.white.all_pieces().union(&self.black.all_pieces());
-        self.stash.all_pieces = Some(pieces);
+    /// Return all of the bitboards comprising the board
+    pub fn all_pieces(&self) -> Vec<&BitBoard> {
+        let mut pieces = self.white.all_pieces();
+        pieces.extend(self.black.all_pieces());
         pieces
     }
+
 }
 
 #[cfg(test)]
@@ -224,7 +214,7 @@ mod test {
     #[test]
     fn test_fresh_game_all_pieces() {
         assert!(
-            Board::fresh_game().all_pieces()
+            BitBoard::from_boards(&Board::fresh_game().all_pieces())
                 == bitboard::RANK_1
                     .union(&bitboard::RANK_1.shift_north())
                     .union(&bitboard::RANK_8)
@@ -235,7 +225,7 @@ mod test {
     #[test]
     fn test_fresh_game_white_pieces() {
         assert!(
-            Board::fresh_game().white.all_pieces()
+            BitBoard::from_boards(&Board::fresh_game().white.all_pieces())
                 == bitboard::RANK_1.union(&bitboard::RANK_1.shift_north())
         );
     }
@@ -243,7 +233,7 @@ mod test {
     #[test]
     fn test_fresh_game_black_pieces() {
         assert!(
-            Board::fresh_game().black.all_pieces()
+            BitBoard::from_boards(&Board::fresh_game().black.all_pieces())
                 == bitboard::RANK_8.union(&bitboard::RANK_8.shift_south())
         );
     }
