@@ -26,14 +26,39 @@ const STARTING_BLACK_KING: BitBoard = BitBoard::from_square(Square::E8);
 // Precalculating starting board
 const STARTING_BOARD: Board = Board::fresh_game();
 
+pub struct Move {
+    from: Square,
+    to: Square,
+}
+impl Move {
+    pub const fn new(from: Square, to: Square) -> Self {
+        Self { from, to }
+    }
+}
+
+
+struct Stash {
+    all_pieces: Option<BitBoard>,
+}
+impl Stash {
+    pub const fn new() -> Self {
+        Self { all_pieces: None }
+    }
+    pub fn set_all_pieces(&mut self, pieces: BitBoard) -> BitBoard {
+        self.all_pieces = Some(pieces);
+        pieces
+    }
+}
+
 /// A representation of a side's pieces
 pub struct Pieces {
-    pub king: BitBoard,
-    pub queens: BitBoard,
-    pub rooks: BitBoard,
-    pub bishops: BitBoard,
-    pub knights: BitBoard,
-    pub pawns: BitBoard,
+    king: BitBoard,
+    queens: BitBoard,
+    rooks: BitBoard,
+    bishops: BitBoard,
+    knights: BitBoard,
+    pawns: BitBoard,
+    stash: Stash,
 }
 impl Pieces {
     // Construct a new set of pieces
@@ -52,24 +77,31 @@ impl Pieces {
             bishops,
             knights,
             pawns,
+            stash: Stash::new(),
         }
     }
     /// Retrieve a bitboard indicating the position of all the pieces
-    pub fn all_pieces(&self) -> BitBoard {
+    pub fn all_pieces(&mut self) -> BitBoard {
+        if let Some(pieces) = self.stash.all_pieces {
+            return pieces;
+        }
         // lazily set the union on first access. Otherwise don't bother.
-        self.king
+        let pieces = self.king
             .union(&self.queens)
             .union(&self.rooks)
             .union(&self.bishops)
             .union(&self.knights)
-            .union(&self.pawns)
+            .union(&self.pawns);
+        self.stash.set_all_pieces(pieces);
+        pieces
     }
 }
 
 /// A representation of the game board
 pub struct Board {
-    pub white: Pieces,
-    pub black: Pieces,
+    white: Pieces,
+    black: Pieces,
+    stash: Stash,
 }
 impl Board {
     /// Construct a new side from a set of pieces
@@ -77,12 +109,13 @@ impl Board {
         Self {
             white,
             black,
+            stash: Stash::new(),
         }
     }
     /// Construct a new board with typical starting positions
     pub const fn fresh_game() -> Self {
-        Self {
-            white: Pieces::new(
+        Self::new(
+            Pieces::new(
                 STARTING_WHITE_KING,
                 STARTING_WHITE_QUEEN,
                 STARTING_WHITE_ROOKS,
@@ -90,7 +123,7 @@ impl Board {
                 STARTING_WHITE_KNIGHTS,
                 STARTING_WHITE_PAWNS,
             ),
-            black: Pieces::new(
+            Pieces::new(
                 STARTING_BLACK_KING,
                 STARTING_BLACK_QUEEN,
                 STARTING_BLACK_ROOKS,
@@ -98,11 +131,16 @@ impl Board {
                 STARTING_BLACK_KNIGHTS,
                 STARTING_BLACK_PAWNS,
             ),
-        }
+        )
     }
     /// Return a bitboard corresponding to all the pieces on both sides
     pub fn all_pieces(&mut self) -> BitBoard {
-        self.white.all_pieces().union(&self.black.all_pieces())
+        if let Some(pieces) = self.stash.all_pieces {
+            return pieces;
+        }
+        let pieces = self.white.all_pieces().union(&self.black.all_pieces());
+        self.stash.all_pieces = Some(pieces);
+        pieces
     }
 }
 
