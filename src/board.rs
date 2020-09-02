@@ -2,7 +2,7 @@
 
 use crate::bitboard::BitBoard;
 use crate::square::Square;
-use crate::traits::Occupied;
+use crate::traits::{Movable, Occupied};
 
 // Constants for starting piece locations
 
@@ -85,7 +85,14 @@ impl PieceBoard {
     const fn new(piece: Piece, board: BitBoard) -> Self {
         Self { piece, board }
     }
-    pub fn apply_move(&self, mv: &Move) -> Self {
+}
+impl Occupied for PieceBoard {
+    fn occupied(&self, square: Square) -> bool {
+        self.board.intersects(&BitBoard::from_square(square))
+    }
+}
+impl Movable for PieceBoard {
+    fn apply_move(&self, mv: &Move) -> Self {
         if self.board.intersects(&mv.from.board) {
             Self::new(
                 self.piece,
@@ -104,11 +111,6 @@ impl PieceBoard {
         } else {
             *self
         }
-    }
-}
-impl Occupied for PieceBoard {
-    fn occupied(&self, square: Square) -> bool {
-        self.board.intersects(&BitBoard::from_square(square))
     }
 }
 
@@ -171,8 +173,16 @@ impl Pieces {
     pub fn all_pieces(&self) -> PiecesIter {
         PiecesIter::new(self)
     }
+}
+impl Occupied for Pieces {
+    /// Return whether the given square is occupied by this piece set.
+    fn occupied(&self, square: Square) -> bool {
+        self.all_pieces().any(|pb| pb.board.occupied(square))
+    }
+}
+impl Movable for Pieces {
     /// Apply a move to the pice set and return a new one
-    pub fn apply_move(&self, mv: &Move) -> Self {
+    fn apply_move(&self, mv: &Move) -> Self {
         Self {
             king: self.king.apply_move(mv),
             queens: self.queens.apply_move(mv),
@@ -181,12 +191,6 @@ impl Pieces {
             knights: self.knights.apply_move(mv),
             pawns: self.pawns.apply_move(mv),
         }
-    }
-}
-impl Occupied for Pieces {
-    /// Return whether the given square is occupied by this piece set.
-    fn occupied(&self, square: Square) -> bool {
-        self.all_pieces().any(|pb| pb.board.occupied(square))
     }
 }
 
@@ -258,18 +262,20 @@ impl Board {
     pub fn all_pieces(&self) -> BoardIter {
         BoardIter::new(self)
     }
-    /// Return a new board with a move applied.
-    ///
-    /// Move validity should be checked at the game level. No checking
-    /// is done here.
-    pub fn apply_move(&self, mv: &Move) -> Self {
-        Self::new(self.white.apply_move(mv), self.black.apply_move(mv))
-    }
 }
 impl Occupied for Board {
     /// Check whether a square is occupied
     fn occupied(&self, square: Square) -> bool {
         self.all_pieces().any(|pb| pb.board.occupied(square))
+    }
+}
+impl Movable for Board {
+    /// Return a new board with a move applied.
+    ///
+    /// Move validity should be checked at the game level. No checking
+    /// is done here.
+    fn apply_move(&self, mv: &Move) -> Self {
+        Self::new(self.white.apply_move(mv), self.black.apply_move(mv))
     }
 }
 
