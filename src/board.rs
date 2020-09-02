@@ -2,6 +2,7 @@
 
 use crate::bitboard::BitBoard;
 use crate::square::Square;
+use crate::traits::Occupied;
 
 // Constants for starting piece locations
 
@@ -84,20 +85,30 @@ impl PieceBoard {
     const fn new(piece: Piece, board: BitBoard) -> Self {
         Self { piece, board }
     }
-    const fn occupied(&self, square: Square) -> bool {
-        self.board.intersects(&BitBoard::from_square(square))
-    }
     pub fn apply_move(&self, mv: &Move) -> Self {
         if self.board.intersects(&mv.from.board) {
             Self::new(
                 self.piece,
                 self.board
+                    // remove any pice in the from square
                     .intersection(&mv.from.board.complement())
+                    // and place the piece in the to square
                     .union(&mv.to.board),
+            )
+        } else if self.board.intersects(&mv.to.board) {
+            Self::new(
+                self.piece,
+                // Remove any piece in the to square
+                self.board.intersection(&mv.to.board.complement()),
             )
         } else {
             *self
         }
+    }
+}
+impl Occupied for PieceBoard {
+    fn occupied(&self, square: Square) -> bool {
+        self.board.intersects(&BitBoard::from_square(square))
     }
 }
 
@@ -160,10 +171,6 @@ impl Pieces {
     pub fn all_pieces(&self) -> PiecesIter {
         PiecesIter::new(self)
     }
-    /// Return whether the given square is occupied by this piece set.
-    pub fn occupied(&self, square: Square) -> bool {
-        self.all_pieces().any(|pb| pb.board.occupied(square))
-    }
     /// Apply a move to the pice set and return a new one
     pub fn apply_move(&self, mv: &Move) -> Self {
         Self {
@@ -174,6 +181,12 @@ impl Pieces {
             knights: self.knights.apply_move(mv),
             pawns: self.pawns.apply_move(mv),
         }
+    }
+}
+impl Occupied for Pieces {
+    /// Return whether the given square is occupied by this piece set.
+    fn occupied(&self, square: Square) -> bool {
+        self.all_pieces().any(|pb| pb.board.occupied(square))
     }
 }
 
@@ -245,16 +258,18 @@ impl Board {
     pub fn all_pieces(&self) -> BoardIter {
         BoardIter::new(self)
     }
-    /// Check whether a square is occupied
-    pub fn occupied(&self, square: Square) -> bool {
-        self.all_pieces().any(|pb| pb.board.occupied(square))
-    }
     /// Return a new board with a move applied.
     ///
     /// Move validity should be checked at the game level. No checking
     /// is done here.
     pub fn apply_move(&self, mv: &Move) -> Self {
         Self::new(self.white.apply_move(mv), self.black.apply_move(mv))
+    }
+}
+impl Occupied for Board {
+    /// Check whether a square is occupied
+    fn occupied(&self, square: Square) -> bool {
+        self.all_pieces().any(|pb| pb.board.occupied(square))
     }
 }
 
@@ -388,12 +403,49 @@ mod test {
         assert!(Board::fresh_game().occupied(Square::A6) == false);
     }
 
+    /// It moves the piece
     #[test]
-    fn test_apply_move_valid_move() {
+    fn test_apply_move_from_occupied_to_empty() {
         let board = Board::fresh_game();
-        assert!(board.occupied(Square::A2));
+        assert!(board.white.pawns.occupied(Square::A2));
+        assert!(!board.occupied(Square::A3));
         let new_board = board.apply_move(&Move::new(Square::A2, Square::A3));
-        assert!(new_board.occupied(Square::A3));
+        assert!(new_board.white.pawns.occupied(Square::A3));
         assert!(!new_board.occupied(Square::A2));
+    }
+
+    /// It moves the piece, replacing the piece in the target location
+    #[test]
+    fn test_apply_move_from_occupied_to_occupied() {
+        let board = Board::fresh_game();
+        assert!(board.white.rooks.occupied(Square::A1));
+        assert!(board.black.pawns.occupied(Square::A7));
+        let new_board = board.apply_move(&Move::new(Square::A1, Square::A7));
+        assert!(!new_board.white.rooks.occupied(Square::A1));
+        assert!(!new_board.black.pawns.occupied(Square::A7));
+        assert!(new_board.white.rooks.occupied(Square::A7));
+    }
+
+    /// It does nothing
+    #[test]
+    fn test_apply_move_from_empty_to_empty() {
+        let board = Board::fresh_game();
+        assert!(!board.occupied(Square::A3));
+        assert!(!board.occupied(Square::A4));
+        let new_board = board.apply_move(&Move::new(Square::A3, Square::A4));
+        assert!(!new_board.occupied(Square::A3));
+        assert!(!new_board.occupied(Square::A4));
+    }
+
+    /// It removes the piece in the target location
+    #[test]
+    fn test_apply_move_from_empty_to_occupied() {
+        let board = Board::fresh_game();
+        assert!(!board.occupied(Square::A3));
+        assert!(board.white.pawns.occupied(Square::A2));
+        let new_board = board.apply_move(&Move::new(Square::A3, Square::A2));
+        assert!(!new_board.occupied(Square::A3));
+        assert!(!new_board.occupied(Square::A2));
+        assert!(!new_board.white.pawns.occupied(Square::A2));
     }
 }

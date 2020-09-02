@@ -3,6 +3,7 @@
 //! Uses a little-endian rank-file (LRF) bitboard approach
 
 use crate::square::{Square, SquarePosition, SQUARES};
+use crate::traits::Occupied;
 use std::fmt;
 
 // Precalculated bitboards corresponding to a variety of board positions
@@ -73,9 +74,6 @@ impl BitBoard {
 impl BitBoard {
     pub const fn is_empty(&self) -> bool {
         self.positions == 0
-    }
-    pub const fn occupied(&self, square: Square) -> bool {
-        !Self::from_square(square).intersection(self).is_empty()
     }
     pub fn occupied_squares(&self) -> Vec<Square> {
         SQUARES
@@ -187,6 +185,11 @@ impl BitBoard {
     /// Unset a given square
     pub const fn unset(&self, square: Square) -> Self {
         self.intersection(&Self::from_square(square).complement())
+    }
+}
+impl Occupied for BitBoard {
+    fn occupied(&self, square: Square) -> bool {
+        !Self::from_square(square).intersection(self).is_empty()
     }
 }
 /// Return a reference from a value or a reference

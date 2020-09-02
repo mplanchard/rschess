@@ -2,3 +2,4 @@
 mod bitboard;
 mod board;
 mod square;
+mod traits;
