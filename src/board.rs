@@ -1,5 +1,7 @@
 //! Board representation
 
+use std::fmt;
+
 use crate::bitboard::BitBoard;
 use crate::square::Square;
 use crate::traits::{Movable, Occupied};
@@ -66,6 +68,11 @@ impl Stash {
     }
 }
 
+enum Color {
+    White,
+    Black,
+}
+
 #[derive(Debug, Clone, Copy)]
 enum Piece {
     King,
@@ -74,6 +81,36 @@ enum Piece {
     Bishop,
     Knight,
     Pawn,
+}
+impl Piece {
+    fn to_string(&self, color: Color) -> &'static str {
+        match self {
+            Self::King => match color {
+                Color::White => "♔",
+                Color::Black => "♚",
+            },
+            Self::Queen => match color {
+                Color::White => "♕",
+                Color::Black => "♛",
+            },
+            Self::Rook => match color {
+                Color::White => "♖",
+                Color::Black => "♜",
+            },
+            Self::Bishop => match color {
+                Color::White => "♗",
+                Color::Black => "♝",
+            },
+            Self::Knight => match color {
+                Color::White => "♘",
+                Color::Black => "♞",
+            },
+            Self::Pawn => match color {
+                Color::White => "♙",
+                Color::Black => "♟",
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -111,6 +148,11 @@ impl Movable for PieceBoard {
         } else {
             *self
         }
+    }
+}
+impl fmt::Display for PieceBoard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}: {}", self.piece, self.board)
     }
 }
 
@@ -191,6 +233,16 @@ impl Movable for Pieces {
             knights: self.knights.apply_move(mv),
             pawns: self.pawns.apply_move(mv),
         }
+    }
+}
+impl fmt::Display for Pieces {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let piece_strings = self
+            .all_pieces()
+            .map(|p| format!("{}", p))
+            .collect::<Vec<String>>()
+            .join("\n");
+        write!(f, "\n{}\n", piece_strings)
     }
 }
 
@@ -276,6 +328,27 @@ impl Movable for Board {
     /// is done here.
     fn apply_move(&self, mv: &Move) -> Self {
         Self::new(self.white.apply_move(mv), self.black.apply_move(mv))
+    }
+}
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let white_piece_strings = self
+            .white
+            .all_pieces()
+            .map(|p| format!("  {}", p))
+            .collect::<Vec<String>>()
+            .join("\n");
+        let black_piece_strings = self
+            .black
+            .all_pieces()
+            .map(|p| format!("  {}", p))
+            .collect::<Vec<String>>()
+            .join("\n");
+        write!(
+            f,
+            "\nWhite:\n{}Black:\n{}\n",
+            white_piece_strings, black_piece_strings
+        )
     }
 }
 
