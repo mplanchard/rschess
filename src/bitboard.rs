@@ -55,13 +55,13 @@ impl BitBoard {
     pub const fn new(positions: u64) -> Self {
         BitBoard { positions }
     }
-    pub const fn from_square(square: Square) -> Self {
-        BitBoard::new(SquarePosition::from_square(square) as u64)
+    pub const fn from_square(square: &Square) -> Self {
+        BitBoard::new(SquarePosition::from_square(&square) as u64)
     }
     pub fn from_squares(squares: &Vec<Square>) -> Self {
         squares
             .iter()
-            .map(|square| BitBoard::from_square(*square))
+            .map(|square| BitBoard::from_square(square))
             .fold(NO_SQUARES, |result, board| result.union(&board))
     }
     pub fn from_boards<T: AsRef<Self>>(boards: &Vec<T>) -> Self {
@@ -79,7 +79,7 @@ impl BitBoard {
         SQUARES
             .iter()
             .map(|s| *s)
-            .filter(|s| self.occupied(*s))
+            .filter(|s| self.occupied(s))
             .collect()
     }
 
@@ -175,20 +175,20 @@ impl BitBoard {
 /// Update methods
 impl BitBoard {
     /// Ensure a given square is set
-    pub const fn set(&self, square: Square) -> Self {
+    pub const fn set(&self, square: &Square) -> Self {
         self.union(&Self::from_square(square))
     }
     /// Toggle a given square
-    pub const fn toggle(&self, square: Square) -> Self {
+    pub const fn toggle(&self, square: &Square) -> Self {
         self.exclusive_or(&Self::from_square(square))
     }
     /// Unset a given square
-    pub const fn unset(&self, square: Square) -> Self {
+    pub const fn unset(&self, square: &Square) -> Self {
         self.intersection(&Self::from_square(square).complement())
     }
 }
 impl Occupied for BitBoard {
-    fn occupied(&self, square: Square) -> bool {
+    fn occupied(&self, square: &Square) -> bool {
         !Self::from_square(square).intersection(self).is_empty()
     }
 }
@@ -291,42 +291,42 @@ mod test_bitboard {
 
     #[test]
     fn test_shift_northest() {
-        let mut board = BitBoard::from_square(Square::A1);
+        let mut board = BitBoard::from_square(&Square::A1);
         for _ in 0..7 {
             // shift west 7 times
             board = board.shift_northeast()
         }
-        assert!(board == BitBoard::from_square(Square::H8));
+        assert!(board == BitBoard::from_square(&Square::H8));
     }
 
     #[test]
     fn test_shift_northwest() {
-        let mut board = BitBoard::from_square(Square::H1);
+        let mut board = BitBoard::from_square(&Square::H1);
         for _ in 0..7 {
             // shift west 7 times
             board = board.shift_northwest()
         }
-        assert!(board == BitBoard::from_square(Square::A8));
+        assert!(board == BitBoard::from_square(&Square::A8));
     }
 
     #[test]
     fn test_shift_southeast() {
-        let mut board = BitBoard::from_square(Square::A8);
+        let mut board = BitBoard::from_square(&Square::A8);
         for _ in 0..7 {
             // shift west 7 times
             board = board.shift_southeast()
         }
-        assert!(board == BitBoard::from_square(Square::H1));
+        assert!(board == BitBoard::from_square(&Square::H1));
     }
 
     #[test]
     fn test_shift_southwest() {
-        let mut board = BitBoard::from_square(Square::H8);
+        let mut board = BitBoard::from_square(&Square::H8);
         for _ in 0..7 {
             // shift west 7 times
             board = board.shift_southwest()
         }
-        assert!(board == BitBoard::from_square(Square::A1));
+        assert!(board == BitBoard::from_square(&Square::A1));
     }
 
     #[test]
@@ -352,45 +352,45 @@ mod test_bitboard {
     #[test]
     fn test_shift_northeast_by() {
         assert!(
-            BitBoard::from_square(Square::A1).shift_northeast_by(Shift::new(7))
-                == BitBoard::from_square(Square::H8)
+            BitBoard::from_square(&Square::A1).shift_northeast_by(Shift::new(7))
+                == BitBoard::from_square(&Square::H8)
         );
     }
 
     #[test]
     fn test_shift_northwest_by() {
         assert!(
-            BitBoard::from_square(Square::H1).shift_northwest_by(Shift::new(7))
-                == BitBoard::from_square(Square::A8)
+            BitBoard::from_square(&Square::H1).shift_northwest_by(Shift::new(7))
+                == BitBoard::from_square(&Square::A8)
         );
     }
 
     #[test]
     fn test_shift_southeast_by() {
         assert!(
-            BitBoard::from_square(Square::A8).shift_southeast_by(Shift::new(7))
-                == BitBoard::from_square(Square::H1)
+            BitBoard::from_square(&Square::A8).shift_southeast_by(Shift::new(7))
+                == BitBoard::from_square(&Square::H1)
         );
     }
 
     #[test]
     fn test_shift_southwest_by() {
         assert!(
-            BitBoard::from_square(Square::H8).shift_southwest_by(Shift::new(7))
-                == BitBoard::from_square(Square::A1)
+            BitBoard::from_square(&Square::H8).shift_southwest_by(Shift::new(7))
+                == BitBoard::from_square(&Square::A1)
         );
     }
 
     #[test]
     fn test_from_square() {
-        assert!(BitBoard::from_square(Square::A1).shift_south() == NO_SQUARES);
-        assert!(BitBoard::from_square(Square::A1).shift_west() == NO_SQUARES);
-        assert!(BitBoard::from_square(Square::A8).shift_north() == NO_SQUARES);
-        assert!(BitBoard::from_square(Square::A8).shift_west() == NO_SQUARES);
-        assert!(BitBoard::from_square(Square::H1).shift_east() == NO_SQUARES);
-        assert!(BitBoard::from_square(Square::H1).shift_south() == NO_SQUARES);
-        assert!(BitBoard::from_square(Square::H8).shift_east() == NO_SQUARES);
-        assert!(BitBoard::from_square(Square::H8).shift_north() == NO_SQUARES);
+        assert!(BitBoard::from_square(&Square::A1).shift_south() == NO_SQUARES);
+        assert!(BitBoard::from_square(&Square::A1).shift_west() == NO_SQUARES);
+        assert!(BitBoard::from_square(&Square::A8).shift_north() == NO_SQUARES);
+        assert!(BitBoard::from_square(&Square::A8).shift_west() == NO_SQUARES);
+        assert!(BitBoard::from_square(&Square::H1).shift_east() == NO_SQUARES);
+        assert!(BitBoard::from_square(&Square::H1).shift_south() == NO_SQUARES);
+        assert!(BitBoard::from_square(&Square::H8).shift_east() == NO_SQUARES);
+        assert!(BitBoard::from_square(&Square::H8).shift_north() == NO_SQUARES);
     }
 
     #[test]
@@ -411,21 +411,21 @@ mod test_bitboard {
 
     #[test]
     fn test_set() {
-        assert!(NO_SQUARES.set(Square::A1) == BitBoard::from_square(Square::A1))
+        assert!(NO_SQUARES.set(&Square::A1) == BitBoard::from_square(&Square::A1))
     }
 
     #[test]
     fn test_unset() {
-        assert!(BitBoard::from_square(Square::A1).unset(Square::A1) == NO_SQUARES)
+        assert!(BitBoard::from_square(&Square::A1).unset(&Square::A1) == NO_SQUARES)
     }
 
     #[test]
     fn test_toggle_on() {
-        assert!(NO_SQUARES.toggle(Square::A1) == BitBoard::from_square(Square::A1))
+        assert!(NO_SQUARES.toggle(&Square::A1) == BitBoard::from_square(&Square::A1))
     }
 
     #[test]
     fn test_toggle_off() {
-        assert!(BitBoard::from_square(Square::A1).toggle(Square::A1) == NO_SQUARES)
+        assert!(BitBoard::from_square(&Square::A1).toggle(&Square::A1) == NO_SQUARES)
     }
 }

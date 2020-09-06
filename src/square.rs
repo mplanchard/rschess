@@ -2,85 +2,109 @@
 
 use std::fmt;
 
+pub enum SquareColor {
+    White,
+    Black,
+}
+
 /// Square indices for a bitboard in little-endian rank-file (LRF) mapping
+///
+/// LRF mapping makes A1 (the bottom left square) 0, and increases index
+/// going right across the files. The enum below is formatted as though
+/// it were a chess board.
+#[rustfmt::skip]
 #[derive(Clone, Copy, Debug)]
 pub enum Square {
-    // Rank 1
-    A1 = 0,
-    B1 = 1,
-    C1 = 2,
-    D1 = 3,
-    E1 = 4,
-    F1 = 5,
-    G1 = 6,
-    H1 = 7,
-    // Rank 2
-    A2 = 8,
-    B2 = 9,
-    C2 = 10,
-    D2 = 11,
-    E2 = 12,
-    F2 = 13,
-    G2 = 14,
-    H2 = 15,
-    // Rank 3
-    A3 = 16,
-    B3 = 17,
-    C3 = 18,
-    D3 = 19,
-    E3 = 20,
-    F3 = 21,
-    G3 = 22,
-    H3 = 23,
-    // Rank 4
-    A4 = 24,
-    B4 = 25,
-    C4 = 26,
-    D4 = 27,
-    E4 = 28,
-    F4 = 29,
-    G4 = 30,
-    H4 = 31,
-    // Rank 5
-    A5 = 32,
-    B5 = 33,
-    C5 = 34,
-    D5 = 35,
-    E5 = 36,
-    F5 = 37,
-    G5 = 38,
-    H5 = 39,
-    // Rank 6
-    A6 = 40,
-    B6 = 41,
-    C6 = 42,
-    D6 = 43,
-    E6 = 44,
-    F6 = 45,
-    G6 = 46,
-    H6 = 47,
-    // Rank 7
-    A7 = 48,
-    B7 = 49,
-    C7 = 50,
-    D7 = 51,
-    E7 = 52,
-    F7 = 53,
-    G7 = 54,
-    H7 = 55,
-    // Rank 8
-    A8 = 56,
-    B8 = 57,
-    C8 = 58,
-    D8 = 59,
-    E8 = 60,
-    F8 = 61,
-    G8 = 62,
-    H8 = 63,
+    A8 = 56, B8 = 57, C8 = 58, D8 = 59, E8 = 60, F8 = 61, G8 = 62, H8 = 63,
+    A7 = 48, B7 = 49, C7 = 50, D7 = 51, E7 = 52, F7 = 53, G7 = 54, H7 = 55,
+    A6 = 40, B6 = 41, C6 = 42, D6 = 43, E6 = 44, F6 = 45, G6 = 46, H6 = 47,
+    A5 = 32, B5 = 33, C5 = 34, D5 = 35, E5 = 36, F5 = 37, G5 = 38, H5 = 39,
+    A4 = 24, B4 = 25, C4 = 26, D4 = 27, E4 = 28, F4 = 29, G4 = 30, H4 = 31,
+    A3 = 16, B3 = 17, C3 = 18, D3 = 19, E3 = 20, F3 = 21, G3 = 22, H3 = 23,
+    A2 = 8,  B2 =  9, C2 = 10, D2 = 11, E2 = 12, F2 = 13, G2 = 14, H2 = 15,
+    A1 = 0,  B1 =  1, C1 =  2, D1 =  3, E1 =  4, F1 =  5, G1 =  6, H1 =  7,
 }
 impl fmt::Display for Square {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+impl Square {
+    pub fn color(&self) -> SquareColor {
+        match self {
+            // Rank 1
+            Square::A1 => SquareColor::Black,
+            Square::B1 => SquareColor::White,
+            Square::C1 => SquareColor::Black,
+            Square::D1 => SquareColor::White,
+            Square::E1 => SquareColor::Black,
+            Square::F1 => SquareColor::White,
+            Square::G1 => SquareColor::Black,
+            Square::H1 => SquareColor::White,
+            // Rank 2
+            Square::A2 => SquareColor::White,
+            Square::B2 => SquareColor::Black,
+            Square::C2 => SquareColor::White,
+            Square::D2 => SquareColor::Black,
+            Square::E2 => SquareColor::White,
+            Square::F2 => SquareColor::Black,
+            Square::G2 => SquareColor::White,
+            Square::H2 => SquareColor::Black,
+            // Rank 3
+            Square::A3 => SquareColor::Black,
+            Square::B3 => SquareColor::White,
+            Square::C3 => SquareColor::Black,
+            Square::D3 => SquareColor::White,
+            Square::E3 => SquareColor::Black,
+            Square::F3 => SquareColor::White,
+            Square::G3 => SquareColor::Black,
+            Square::H3 => SquareColor::White,
+            // Rank 4
+            Square::A4 => SquareColor::White,
+            Square::B4 => SquareColor::Black,
+            Square::C4 => SquareColor::White,
+            Square::D4 => SquareColor::Black,
+            Square::E4 => SquareColor::White,
+            Square::F4 => SquareColor::Black,
+            Square::G4 => SquareColor::White,
+            Square::H4 => SquareColor::Black,
+            // Rank 5
+            Square::A5 => SquareColor::Black,
+            Square::B5 => SquareColor::White,
+            Square::C5 => SquareColor::Black,
+            Square::D5 => SquareColor::White,
+            Square::E5 => SquareColor::Black,
+            Square::F5 => SquareColor::White,
+            Square::G5 => SquareColor::Black,
+            Square::H5 => SquareColor::White,
+            // Rank 6
+            Square::A6 => SquareColor::White,
+            Square::B6 => SquareColor::Black,
+            Square::C6 => SquareColor::White,
+            Square::D6 => SquareColor::Black,
+            Square::E6 => SquareColor::White,
+            Square::F6 => SquareColor::Black,
+            Square::G6 => SquareColor::White,
+            Square::H6 => SquareColor::Black,
+            // Rank 7
+            Square::A7 => SquareColor::Black,
+            Square::B7 => SquareColor::White,
+            Square::C7 => SquareColor::Black,
+            Square::D7 => SquareColor::White,
+            Square::E7 => SquareColor::Black,
+            Square::F7 => SquareColor::White,
+            Square::G7 => SquareColor::Black,
+            Square::H7 => SquareColor::White,
+            // Rank 8
+            Square::A8 => SquareColor::White,
+            Square::B8 => SquareColor::Black,
+            Square::C8 => SquareColor::White,
+            Square::D8 => SquareColor::Black,
+            Square::E8 => SquareColor::White,
+            Square::F8 => SquareColor::Black,
+            Square::G8 => SquareColor::White,
+            Square::H8 => SquareColor::Black,
+        }
     }
 }
 
@@ -158,7 +182,7 @@ pub enum SquarePosition {
 }
 impl SquarePosition {
     /// Match a square index to its LRF bitboard position
-    pub const fn from_square(square: Square) -> Self {
+    pub const fn from_square(square: &Square) -> Self {
         match square {
             Square::A1 => Self::A1,
             Square::A2 => Self::A2,
@@ -228,74 +252,18 @@ impl SquarePosition {
     }
 }
 
-/// An array of all square indices
+/// An array of all squares in index order
+#[rustfmt::skip]
 pub const SQUARES: [Square; 64] = [
-    Square::A1,
-    Square::A2,
-    Square::A3,
-    Square::A4,
-    Square::A5,
-    Square::A6,
-    Square::A7,
-    Square::A8,
-    Square::B1,
-    Square::B2,
-    Square::B3,
-    Square::B4,
-    Square::B5,
-    Square::B6,
-    Square::B7,
-    Square::B8,
-    Square::C1,
-    Square::C2,
-    Square::C3,
-    Square::C4,
-    Square::C5,
-    Square::C6,
-    Square::C7,
-    Square::C8,
-    Square::D1,
-    Square::D2,
-    Square::D3,
-    Square::D4,
-    Square::D5,
-    Square::D6,
-    Square::D7,
-    Square::D8,
-    Square::E1,
-    Square::E2,
-    Square::E3,
-    Square::E4,
-    Square::E5,
-    Square::E6,
-    Square::E7,
-    Square::E8,
-    Square::F1,
-    Square::F2,
-    Square::F3,
-    Square::F4,
-    Square::F5,
-    Square::F6,
-    Square::F7,
-    Square::F8,
-    Square::G1,
-    Square::G2,
-    Square::G3,
-    Square::G4,
-    Square::G5,
-    Square::G6,
-    Square::G7,
-    Square::G8,
-    Square::H1,
-    Square::H2,
-    Square::H3,
-    Square::H4,
-    Square::H5,
-    Square::H6,
-    Square::H7,
-    Square::H8,
+    Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
+    Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2,
+    Square::A3, Square::B3, Square::C3, Square::D3, Square::E3, Square::F3, Square::G3, Square::H3,
+    Square::A4, Square::B4, Square::C4, Square::D4, Square::E4, Square::F4, Square::G4, Square::H4,
+    Square::A5, Square::B5, Square::C5, Square::D5, Square::E5, Square::F5, Square::G5, Square::H5,
+    Square::A6, Square::B6, Square::C6, Square::D6, Square::E6, Square::F6, Square::G6, Square::H6,
+    Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7,
+    Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
 ];
-
 
 /// An array of all square positions
 pub const SQUARE_POSITIONS: [SquarePosition; 64] = [

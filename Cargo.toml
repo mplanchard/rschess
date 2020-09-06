@@ -1,7 +1,8 @@
 [package]
-name = "rschess"
-version = "0.1.0"
 authors = ["Matthew Planchard <msplanchard@gmail.com>"]
 edition = "2018"
+name = "rschess"
+version = "0.1.0"
 
 [dependencies]
+colored = "~2.0.0"
